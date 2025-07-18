@@ -1,0 +1,746 @@
+function parseToTable() {
+            if (!ocrResult) return;
+            
+            const mode = document.getElementById('autoConvertMode').value;
+            const lines = ocrResult.split('\n').filter(line => line.trim() !== '');
+            
+            let result;
+            switch(mode) {
+                case 'smart':
+                    result = smartDetection(lines);
+                    break;
+                case 'table':
+                    result = forceTableMode(lines);
+                    break;
+                case 'list':
+                    result = forceListMode(lines);
+                    break;
+                case 'invoice':
+                    result = invoiceMode(lines);
+                    break;
+                default:
+                    result = smartDetection(lines);
+            }
+            
+            // Simpan data untuk export
+            tableData = [result.headers, ...result.data];
+            
+            // Tampilkan tabel
+            displayTable(result.headers, result.data);
+        }<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR ke Excel - Konversi Foto ke Data</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            padding: 40px;
+        }
+        
+        .upload-section {
+            background: #f8f9fa;
+            border: 3px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-section:hover {
+            border-color: #4facfe;
+            background: #f0f8ff;
+        }
+        
+        .upload-section.dragover {
+            border-color: #4facfe;
+            background: #e3f2fd;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+        }
+        
+        .preview-section {
+            display: none;
+            margin-bottom: 30px;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .processing {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results-section {
+            display: none;
+        }
+        
+        .ocr-text {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .data-table th {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .settings-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .settings-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .settings-row label {
+            min-width: 120px;
+            font-weight: 600;
+        }
+        
+        .settings-row input,
+        .settings-row select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .control-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 OCR ke Excel</h1>
+            <p>Konversi foto dokumen menjadi data Excel secara otomatis</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-icon">📁</div>
+                <h3>Pilih atau Drop Foto Disini</h3>
+                <p>Mendukung format JPG, PNG, GIF, BMP</p>
+                <br>
+                <input type="file" id="fileInput" class="file-input" accept="image/*">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Pilih Foto
+                </button>
+            </div>
+            
+            <div class="preview-section" id="previewSection">
+                <h3>Preview Gambar:</h3>
+                <img id="previewImage" class="preview-image" alt="Preview">
+                
+                <div class="settings-panel">
+                    <h4>Pengaturan OCR & Auto Convert:</h4>
+                    <div class="settings-row">
+                        <label>Bahasa:</label>
+                        <select id="languageSelect">
+                            <option value="ind">Bahasa Indonesia</option>
+                            <option value="eng">English</option>
+                            <option value="ind+eng">Indonesia + English</option>
+                        </select>
+                    </div>
+                    <div class="settings-row">
+                        <label>Mode:</label>
+                        <select id="psmSelect">
+                            <option value="6">Blok teks seragam</option>
+                            <option value="8">Kata tunggal</option>
+                            <option value="7">Baris teks tunggal</option>
+                            <option value="3">Otomatis</option>
+                        </select>
+                    </div>
+                    <div class="settings-row">
+                        <label>Auto Convert:</label>
+                        <select id="autoConvertMode">
+                            <option value="smart">Smart Detection</option>
+                            <option value="table">Force Table Mode</option>
+                            <option value="list">Force List Mode</option>
+                            <option value="invoice">Invoice Mode</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button class="control-btn btn-primary" onclick="processImage()">
+                        🔍 Mulai OCR
+                    </button>
+                    <button class="control-btn btn-secondary" onclick="resetApp()">
+                        🔄 Reset
+                    </button>
+                </div>
+            </div>
+            
+            <div class="processing" id="processingSection">
+                <div class="spinner"></div>
+                <h3>Memproses Gambar...</h3>
+                <p id="progressText">Memulai OCR...</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            
+            <div class="results-section" id="resultsSection">
+                <h3>Hasil OCR:</h3>
+                <div class="ocr-text" id="ocrText"></div>
+                
+                <div class="controls">
+                    <button class="control-btn btn-primary" onclick="autoConvertToExcel()">
+                        ⚡ Auto Convert ke Excel
+                    </button>
+                    <button class="control-btn btn-primary" onclick="parseToTable()">
+                        📊 Parsing ke Tabel
+                    </button>
+                    <button class="control-btn btn-primary" onclick="downloadExcel()">
+                        📥 Download Excel
+                    </button>
+                    <button class="control-btn btn-secondary" onclick="editText()">
+                        ✏️ Edit Teks
+                    </button>
+                    <button class="control-btn btn-danger" onclick="processAnother()">
+                        🔄 Proses Foto Lain
+                    </button>
+                </div>
+                
+                <div class="table-container" id="tableContainer" style="display: none;">
+                    <table class="data-table" id="dataTable">
+                        <thead id="tableHead"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentImageFile = null;
+        let ocrResult = '';
+        let tableData = [];
+        
+        // Setup drag and drop
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                handleFileSelect(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+        
+        function handleFileSelect(file) {
+            currentImageFile = file;
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const previewImage = document.getElementById('previewImage');
+                previewImage.src = e.target.result;
+                
+                document.getElementById('uploadSection').style.display = 'none';
+                document.getElementById('previewSection').style.display = 'block';
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        function processImage() {
+            if (!currentImageFile) return;
+            
+            document.getElementById('previewSection').style.display = 'none';
+            document.getElementById('processingSection').style.display = 'block';
+            
+            const language = document.getElementById('languageSelect').value;
+            const psm = document.getElementById('psmSelect').value;
+            
+            const worker = Tesseract.createWorker({
+                logger: m => {
+                    const progressText = document.getElementById('progressText');
+                    const progressFill = document.getElementById('progressFill');
+                    
+                    if (m.status === 'recognizing text') {
+                        const progress = Math.round(m.progress * 100);
+                        progressText.textContent = `Mengenali teks... ${progress}%`;
+                        progressFill.style.width = `${progress}%`;
+                    } else {
+                        progressText.textContent = `${m.status}...`;
+                    }
+                }
+            });
+            
+            (async () => {
+                await worker.load();
+                await worker.loadLanguage(language);
+                await worker.initialize(language);
+                await worker.setParameters({
+                    tessedit_pageseg_mode: psm,
+                });
+                
+                const { data: { text } } = await worker.recognize(currentImageFile);
+                ocrResult = text;
+                
+                document.getElementById('ocrText').textContent = text;
+                document.getElementById('processingSection').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'block';
+                
+                await worker.terminate();
+            })();
+        }
+        
+        function autoConvertToExcel() {
+            if (!ocrResult) return;
+            
+            const mode = document.getElementById('autoConvertMode').value;
+            const lines = ocrResult.split('\n').filter(line => line.trim() !== '');
+            
+            let headers = [];
+            let tableRows = [];
+            
+            switch(mode) {
+                case 'smart':
+                    // Smart detection - coba berbagai pola
+                    tableRows = smartDetection(lines);
+                    break;
+                case 'table':
+                    // Force table mode
+                    tableRows = forceTableMode(lines);
+                    break;
+                case 'list':
+                    // Force list mode
+                    tableRows = forceListMode(lines);
+                    break;
+                case 'invoice':
+                    // Invoice mode
+                    tableRows = invoiceMode(lines);
+                    break;
+            }
+            
+            if (tableRows.data.length > 0) {
+                tableData = [tableRows.headers, ...tableRows.data];
+                
+                // Langsung download Excel
+                const ws = XLSX.utils.aoa_to_sheet(tableData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'OCR Data');
+                
+                // Auto-fit columns
+                const colWidths = [];
+                tableData.forEach(row => {
+                    row.forEach((cell, index) => {
+                        const cellLength = cell.toString().length;
+                        if (!colWidths[index] || cellLength > colWidths[index]) {
+                            colWidths[index] = cellLength + 2;
+                        }
+                    });
+                });
+                ws['!cols'] = colWidths.map(width => ({ wch: width }));
+                
+                const fileName = `auto_convert_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                // Tampilkan preview di tabel
+                displayTable(tableRows.headers, tableRows.data);
+                
+                alert(`✅ File Excel berhasil dibuat: ${fileName}`);
+            } else {
+                alert('❌ Tidak dapat mendeteksi struktur data yang valid. Coba mode lain atau edit teks terlebih dahulu.');
+            }
+        }
+        
+        function smartDetection(lines) {
+            // Coba deteksi tabel dengan separator
+            let result = forceTableMode(lines);
+            if (result.data.length > 0) return result;
+            
+            // Coba deteksi invoice
+            result = invoiceMode(lines);
+            if (result.data.length > 0) return result;
+            
+            // Fallback ke list mode
+            return forceListMode(lines);
+        }
+        
+        function forceTableMode(lines) {
+            const headers = [];
+            const data = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Cari pola tabel dengan berbagai separator
+                const separators = [/\s{2,}/, /\t/, /\|/, /;/, /,(?=\s)/];
+                
+                for (const separator of separators) {
+                    if (line.match(separator)) {
+                        const cells = line.split(separator).map(cell => cell.trim()).filter(cell => cell);
+                        
+                        if (cells.length > 1) {
+                            if (headers.length === 0) {
+                                headers.push(...cells);
+                            } else if (cells.length === headers.length) {
+                                data.push(cells);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            return {
+                headers: headers.length > 0 ? headers : ['Kolom 1', 'Kolom 2'],
+                data: data
+            };
+        }
+        
+        function forceListMode(lines) {
+            const headers = ['No', 'Item', 'Deskripsi'];
+            const data = [];
+            
+            lines.forEach((line, index) => {
+                if (line.trim()) {
+                    // Coba pisahkan berdasarkan pola umum
+                    const parts = line.split(/[:|-]/).map(part => part.trim());
+                    
+                    if (parts.length >= 2) {
+                        data.push([index + 1, parts[0], parts.slice(1).join(' - ')]);
+                    } else {
+                        data.push([index + 1, line.trim(), '']);
+                    }
+                }
+            });
+            
+            return { headers, data };
+        }
+        
+        function invoiceMode(lines) {
+            const headers = ['Item', 'Quantity', 'Price', 'Total'];
+            const data = [];
+            
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                
+                // Cari pola angka (qty, price, total)
+                const numbers = trimmed.match(/\d+[.,]?\d*/g);
+                
+                if (numbers && numbers.length >= 2) {
+                    const text = trimmed.replace(/\d+[.,]?\d*/g, '').trim();
+                    const cleanText = text.replace(/\s+/g, ' ');
+                    
+                    if (numbers.length === 2) {
+                        data.push([cleanText, numbers[0], numbers[1], numbers[1]]);
+                    } else if (numbers.length >= 3) {
+                        data.push([cleanText, numbers[0], numbers[1], numbers[2]]);
+                    }
+                }
+            });
+            
+            return { headers, data };
+        }
+        
+        function displayTable(headers, data) {
+            const tableHead = document.getElementById('tableHead');
+            const tableBody = document.getElementById('tableBody');
+            
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+            
+            // Header
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            tableHead.appendChild(headerRow);
+            
+            // Body
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                row.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.textContent = cell;
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+            
+            document.getElementById('tableContainer').style.display = 'block';
+        }
+        
+        function downloadExcel() {
+            if (tableData.length === 0) {
+                alert('Tidak ada data tabel untuk didownload. Silakan parsing ke tabel terlebih dahulu.');
+                return;
+            }
+            
+            const ws = XLSX.utils.aoa_to_sheet(tableData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'OCR Data');
+            
+            // Auto-fit columns
+            const colWidths = [];
+            tableData.forEach(row => {
+                row.forEach((cell, index) => {
+                    const cellLength = cell.toString().length;
+                    if (!colWidths[index] || cellLength > colWidths[index]) {
+                        colWidths[index] = cellLength + 2;
+                    }
+                });
+            });
+            ws['!cols'] = colWidths.map(width => ({ wch: width }));
+            
+            const fileName = `ocr_data_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+        
+        function editText() {
+            const currentText = document.getElementById('ocrText').textContent;
+            const newText = prompt('Edit teks OCR:', currentText);
+            if (newText !== null) {
+                ocrResult = newText;
+                document.getElementById('ocrText').textContent = newText;
+            }
+        }
+        
+        function processAnother() {
+            resetApp();
+        }
+        
+        function resetApp() {
+            currentImageFile = null;
+            ocrResult = '';
+            tableData = [];
+            
+            document.getElementById('uploadSection').style.display = 'block';
+            document.getElementById('previewSection').style.display = 'none';
+            document.getElementById('processingSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('tableContainer').style.display = 'none';
+            
+            document.getElementById('fileInput').value = '';
+            document.getElementById('ocrText').textContent = '';
+            document.getElementById('progressFill').style.width = '0%';
+        }
+    </script>
+</body>
+</html>
