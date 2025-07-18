@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>OCR Debug Test</h1>
+    
+    <div class="test-section">
+        <h2>Library Loading Test</h2>
+        <div id="tesseract-test"></div>
+        <div id="xlsx-test"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Simple OCR Test</h2>
+        <input type="file" id="testFile" accept="image/*">
+        <button id="testBtn">Test OCR</button>
+        <div id="testResult"></div>
+    </div>
+    
+    <script src="https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script>
+        // Test library loading
+        document.addEventListener('DOMContentLoaded', () => {
+            const tesseractTest = document.getElementById('tesseract-test');
+            const xlsxTest = document.getElementById('xlsx-test');
+            
+            if (typeof Tesseract !== 'undefined') {
+                tesseractTest.innerHTML = '<span class="success">✅ Tesseract.js loaded successfully</span>';
+                console.log('Tesseract version:', Tesseract.version);
+            } else {
+                tesseractTest.innerHTML = '<span class="error">❌ Tesseract.js failed to load</span>';
+            }
+            
+            if (typeof XLSX !== 'undefined') {
+                xlsxTest.innerHTML = '<span class="success">✅ XLSX library loaded successfully</span>';
+                console.log('XLSX version:', XLSX.version);
+            } else {
+                xlsxTest.innerHTML = '<span class="error">❌ XLSX library failed to load</span>';
+            }
+        });
+        
+        // Simple OCR test
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('testFile');
+            const resultDiv = document.getElementById('testResult');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                resultDiv.innerHTML = '<span class="error">Please select a file first</span>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = '<span class="info">Processing...</span>';
+            
+            try {
+                // Use Tesseract.recognize directly (v5 API)
+                const result = await Tesseract.recognize(
+                    file,
+                    'eng',
+                    {
+                        logger: m => console.log(m)
+                    }
+                );
+                
+                resultDiv.innerHTML = `<span class="success">✅ OCR Success!</span><br><br><pre>${result.data.text}</pre>`;
+            } catch (error) {
+                console.error('OCR Error:', error);
+                resultDiv.innerHTML = `<span class="error">❌ OCR Failed: ${error.message}</span>`;
+            }
+        });
+    </script>
+</body>
+</html>

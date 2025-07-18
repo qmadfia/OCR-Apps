@@ -1,0 +1,325 @@
+/* Reset dan global styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Layout utama */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+/* Main content area */
+.main-content {
+    padding: 40px;
+}
+
+/* Upload section */
+.upload-section {
+    background: #f8f9fa;
+    border: 3px dashed #dee2e6;
+    border-radius: 15px;
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 30px;
+    transition: all 0.3s ease;
+}
+
+.upload-section:hover {
+    border-color: #4facfe;
+    background: #f0f8ff;
+}
+
+.upload-section.dragover {
+    border-color: #4facfe;
+    background: #e3f2fd;
+    transform: scale(1.02);
+}
+
+.upload-icon {
+    font-size: 4rem;
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+.file-input {
+    display: none;
+}
+
+.upload-btn {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 25px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+}
+
+.upload-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+}
+
+/* Preview section */
+.preview-section {
+    display: none;
+    margin-bottom: 30px;
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+/* Processing section */
+.processing {
+    display: none;
+    text-align: center;
+    padding: 30px;
+    background: #f8f9fa;
+    border-radius: 15px;
+    margin-bottom: 30px;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #4facfe;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Results section */
+.results-section {
+    display: none;
+}
+
+.ocr-text {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Table styling */
+.table-container {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.data-table th {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    font-weight: 600;
+}
+
+.data-table tr:hover {
+    background: #f8f9fa;
+}
+
+/* Controls dan buttons */
+.controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.control-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    color: white;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+}
+
+.control-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* Settings panel */
+.settings-panel {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.settings-panel h4 {
+    margin-bottom: 15px;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.settings-row label {
+    min-width: 120px;
+    font-weight: 600;
+    color: #34495e;
+}
+
+.settings-row input,
+.settings-row select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    font-size: 1rem;
+    background: white;
+}
+
+.settings-row select:focus {
+    outline: none;
+    border-color: #4facfe;
+    box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.2);
+}
+
+.settings-info {
+    margin-top: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border-radius: 8px;
+    border-left: 4px solid #4facfe;
+}
+
+.settings-info p {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.settings-info ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.settings-info li {
+    margin-bottom: 5px;
+    color: #34495e;
+    font-size: 0.9rem;
+}
+
+/* Progress bar */
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 2rem;
+    }
+    
+    .main-content {
+        padding: 20px;
+    }
+    
+    .controls {
+        flex-direction: column;
+    }
+    
+    .control-btn {
+        width: 100%;
+    }
+}
